@@ -1,9 +1,0 @@
-{
-    "camera": [
-        {
-            "ip": "http://192.168.1.28:8554/test",
-            "port": 554
-        }
-    ],
-    "camera_total_number": 1
-}
