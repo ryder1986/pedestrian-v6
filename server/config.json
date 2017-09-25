@@ -1,0 +1,9 @@
+{
+    "camera": [
+        {
+            "ip": "/root/video/test.mp4",
+            "port": 554
+        }
+    ],
+    "camera_total_number": 1
+}

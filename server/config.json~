@@ -1,0 +1,9 @@
+{
+    "camera": [
+        {
+            "ip": "rtsp://192.168.1.89:554/av0_1",
+            "port": 554
+        }
+    ],
+    "camera_total_number": 1
+}
