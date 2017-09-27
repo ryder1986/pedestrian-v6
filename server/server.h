@@ -21,20 +21,48 @@ public:
     ClientSession(QTcpSocket *client_skt,CameraManager *p):skt(client_skt),p_manager(p){
         connect(skt,SIGNAL(readyRead()),this,SLOT(real_reply()));
         connect(skt,SIGNAL(disconnected()),this,SLOT(deleteLater()));
+        connect(skt,SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(socket_error()));
+        //  connect(skt,SIGNAL(aboutToClose()),this,SLOT(delete_client()));
 
         udp_skt=new QUdpSocket();
         // QHostAddress a;
         // udp_skt->bind(a,12349);
-        timer=new QTimer();
-        //     connect(timer,SIGNAL(timeout()),this,SLOT(send_rst_to_client()));
-        timer->start(1000);
+        //   timer=new QTimer();
+        //  connect(timer,SIGNAL(timeout()),this,SLOT(send_rst_to_client()));
+        //    timer->start(1000);
         client_addr=skt->peerAddress();
+        //  connect(skt,SIGNAL(error(QAbstractSocket::SocketError)),this,SLOT(test()));
+        //                connect(skt,SIGNAL(aboutToClose()),this,SLOT(test()));
+        //                connect(skt,SIGNAL(disconnected()),this,SLOT(test()));
+
+
 
     }
-public slots:
-    void send_rst_to_client()
+    ~ClientSession()
     {
-        udp_skt->writeDatagram("1231",client_addr,12341);
+        //   delete timer;
+        //    disconnect(timer,SIGNAL(timeout()),this,SLOT(send_rst_to_client()));
+        delete udp_skt;
+    }
+
+public slots:
+    void test()
+    {
+        //   prt(info,"11111");
+    }
+    void socket_error()
+    {
+        emit socket_error(this);
+    }
+
+    void send_rst_to_client(QByteArray ba)
+    {
+        if(skt->state()==QTcpSocket::ConnectedState)
+          {
+
+            udp_skt->writeDatagram(ba.data(),client_addr,Protocol::SERVER_DATA_OUTPUT_PORT);
+            prt(info,"seding");
+        }
     }
 
     void simple_reply()
@@ -124,7 +152,7 @@ public slots:
     }
 signals :
     int get_server_config(char *buf);
-
+    void socket_error(ClientSession *c);
 private:
     char buf[BUF_MAX_LEN];
     QTcpSocket *skt;
@@ -166,7 +194,7 @@ public:
     }
     void print_server_info()
     {
-  //     prt(info,"server started ");
+        //     prt(info,"server started ");
     }
 
 signals:
@@ -178,14 +206,24 @@ public slots:
         QString str(skt->peerAddress().toIPv4Address()>>28);
         prt(info,"client %s:%d",str.data(),skt->peerPort());
         ClientSession *client=new ClientSession(skt,this->cam_manager);
+        connect(client,SIGNAL(socket_error(ClientSession*)),this,SLOT(delete_client(ClientSession*)));
         clients.append(client);
         connect(client,SIGNAL(get_server_config(char *)),cam_manager,SLOT(get_config(char *)));
+        connect(cam_manager,SIGNAL(output_2_client(QByteArray)),this,SLOT(output_2_client(QByteArray)));
     }
-    void client_connected()
+    void delete_client(ClientSession *c)
     {
-        QTcpSocket *skt = server->nextPendingConnection();
-        connect(skt, SIGNAL(disconnected()), skt, SLOT(deleteLater()));
+        delete c ;
+        clients.removeOne(c);
     }
+
+    void output_2_client(QByteArray ba)
+    {
+        foreach (ClientSession  *c , clients) {
+            c->send_rst_to_client(ba);
+        }
+    }
+
 private:
     CameraManager *cam_manager;//manage all cameras
     ServerInfoReporter *reporter;//repy query for system info

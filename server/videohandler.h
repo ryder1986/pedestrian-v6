@@ -48,7 +48,7 @@ public:
     {
         frame_mat=frame;
     }
-    int work(char *url)
+    int work(QByteArray &rst_ba)
     {
         int min_win_width = 64;	// 48, 64, 96, 128, 160, 192, 224
         int max_win_width = 256;
@@ -136,7 +136,7 @@ public:
                     //   waitKey(1);
                     objs.clear();
                 }
-                emit send_rst(NULL,1);
+          //      emit send_rst(NULL,1);
 
             }
             else
@@ -150,7 +150,7 @@ public:
     }
 
 signals:
-    void send_rst(void *data,int len);
+  //  void send_rst(void *data,int len);
 private:
     Mat gray_frame;
     Mat pedestrians;

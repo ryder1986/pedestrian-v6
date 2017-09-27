@@ -24,9 +24,17 @@ public:
 
         in.setDevice(tcp_socket);
         in.setVersion(QDataStream::Qt_1_0);
-        udp_skt=new QUdpSocket(this);
-        udp_skt->bind(Protocol::CLIENT_REPORTER_PORT,QUdpSocket::ShareAddress);
-        connect(udp_skt,SIGNAL(readyRead()),this,SLOT(get_reply()));
+        udp_skt_find_server=new QUdpSocket(this);
+        udp_skt_find_server->bind(Protocol::CLIENT_REPORTER_PORT,QUdpSocket::ShareAddress);
+        connect(udp_skt_find_server,SIGNAL(readyRead()),this,SLOT(get_reply()));
+
+
+        udp_skt_alg_output=new QUdpSocket(this);
+        udp_skt_alg_output->bind(Protocol::SERVER_DATA_OUTPUT_PORT,QUdpSocket::ShareAddress);
+        connect(udp_skt_alg_output,SIGNAL(readyRead()),this,SLOT(get_rst()));
+
+
+
         //  broadcast_to_client();
         //  search();
     }
@@ -35,7 +43,7 @@ public:
 
         QByteArray b;
         b.append("pedestrian");
-        udp_skt->writeDatagram(b.data(), b.size(),
+        udp_skt_find_server->writeDatagram(b.data(), b.size(),
                                QHostAddress::Broadcast, Protocol::SERVER_REPORTER_PORT);
         prt(info,"finding server ...");
     }
@@ -106,28 +114,39 @@ public:
 signals:
 
 public slots:
+    void get_rst()
+    {
+        QByteArray datagram_rst;
+        //  while(udp_skt->hasPendingDatagrams())
+        if(udp_skt_alg_output->hasPendingDatagrams())
+        {
+            datagram_rst.resize((udp_skt_alg_output->pendingDatagramSize()));
+            udp_skt_alg_output->readDatagram(datagram_rst.data(),datagram_rst.size());
+            prt(info,"get rst : %s",datagram_rst.data());
 
+        }
+    }
     void get_reply()
     {
         //  while(udp_skt->hasPendingDatagrams())
-        if(udp_skt->hasPendingDatagrams())
+        if(udp_skt_find_server->hasPendingDatagrams())
         {
-            datagram.resize((udp_skt->pendingDatagramSize()));
-            udp_skt->readDatagram(datagram.data(),datagram.size());
+            datagram.resize((udp_skt_find_server->pendingDatagramSize()));
+            udp_skt_find_server->readDatagram(datagram.data(),datagram.size());
             prt(info,"get server info : %s",datagram.data());
             server_ip.append(datagram.split(',')[0]);
         }
     }
     QString wait_server_info_reply()
     {
-        while(!udp_skt->hasPendingDatagrams())
+        while(!udp_skt_find_server->hasPendingDatagrams())
         {
 
         }
         //    if(udp_skt->hasPendingDatagrams())
         {
-            datagram.resize((udp_skt->pendingDatagramSize()));
-            udp_skt->readDatagram(datagram.data(),datagram.size());
+            datagram.resize((udp_skt_find_server->pendingDatagramSize()));
+            udp_skt_find_server->readDatagram(datagram.data(),datagram.size());
             prt(info,"get server info : %s",datagram.data());
             server_ip.clear();
             server_ip.append(datagram.split(',')[0]);
@@ -164,10 +183,8 @@ private:
     QTcpSocket *tcp_socket;
     QDataStream in;
     QFile *f;
-
-
-
-    QUdpSocket *udp_skt;
+    QUdpSocket *udp_skt_find_server;
+    QUdpSocket *udp_skt_alg_output;
     QByteArray datagram;
 };
 

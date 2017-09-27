@@ -26,7 +26,7 @@ public:
     void set_frame(Mat *frm){
         p_render->render_set_mat(*frm);
     }
-    void work(char *)
+    void work(QByteArray  &ba)
     {
 
     }

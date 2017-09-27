@@ -143,12 +143,13 @@ protected:
                 QThread::msleep(100);
                 //      break;
             }
-            QThread::msleep(5);
+            QThread::msleep(1);
         }
     }
 
 signals:
     void restart_source();
+    void output(QByteArray ba);
 public slots:
     void tick_check_frame_rate()
     {
@@ -190,6 +191,8 @@ public slots:
     bool work()
     {
         work_lock.lock();
+        QByteArray ba;
+        ba.append(p_video_src->get_url());
         bool ret=true;
         //      if(connected==true){
         if(p_video_src!=NULL){
@@ -214,7 +217,7 @@ public slots:
                 }else
                 {
                     video_handler.set_frame(f);
-                    video_handler.work("test url");
+                    video_handler.work(ba);
               //      prt(info,"get   video");
                 }
             }else{
@@ -228,6 +231,7 @@ public slots:
             ret=false;
         }
         if(ret==true){
+               emit  output(ba);
                tick++;
              //  prt(info,"tick now %d  %d" ,  tick,tick_last);
         }
@@ -305,6 +309,11 @@ public:
     }
 
 public slots:
+    void camera_output(QByteArray ba)
+    {
+        emit output_2_client(ba);
+    }
+
     void add_camera(QByteArray buf)
     {
         p_cfg->set_ba((buf));
@@ -319,19 +328,25 @@ public slots:
         add_camera_internal(p_cfg->data.camera_amount-1);
 
     }
+
+
     void add_camera_internal(int index)
     {
         Camera *c=new Camera(p_cfg->data.camera[index]);
+        connect(c,SIGNAL(output(QByteArray)),this,SLOT(camera_output(QByteArray)));
         cams.append(c);
      //   c->start();
         prt(info,"cam %d append",index);
     }
     void del_camera_internal(int index)
     {
+        disconnect(cams[index],SIGNAL(output(QByteArray)),this,SLOT(camera_output(QByteArray)));
         delete cams[index];
         cams.removeAt(index);
         prt(info,"cam %d deleted",index);
     }
+
+
     void add_camera(QString ip)
     {
         //         Camera *c=new Camera(cfg.data.camera[i]);
@@ -394,7 +409,8 @@ public slots:
     {
         return cams.size();
     }
-
+signals:
+    void output_2_client(QByteArray ba);
 private:
 
     QList <Camera *> cams;//cameras that opened, all cameras is working,or trying to work
